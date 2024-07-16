@@ -1,26 +1,17 @@
-const ExcelJS = require('exceljs');
-const path = require('path');
+const express = require('express');
+const router = express.Router();
+const { addWorkflowToSchedule } = require('../services/excelService');
 
-const excelFile = path.join(__dirname, '..', '..', 'data', 'schedule.xlsx');
+router.post('/schedule', async (req, res) => {
+  try {
+    const { workflow } = req.body;
+    const scheduledTime = new Date().toISOString();
+    await addWorkflowToSchedule(workflow, scheduledTime);
+    res.json({ message: `Scheduled ${workflow} workflow for ${scheduledTime}` });
+  } catch (error) {
+    console.error('Error scheduling workflow:', error);
+    res.status(500).json({ error: 'Failed to schedule workflow' });
+  }
+});
 
-async function addWorkflowToSchedule(workflow, scheduledTime) {
-  const workbook = new ExcelJS.Workbook();
-  await workbook.xlsx.readFile(excelFile);
-  
-  const worksheet = workbook.getWorksheet('Schedule');
-  
-  // Add a new row with the workflow details
-  worksheet.addRow([
-    workflow,
-    scheduledTime,
-    '1', // interval
-    'dk-msv-05-7875', // machine_id
-    '1', // schedule_id
-    '1', // stop_if_fail
-    '(\\d).*' // filename_regex
-  ]);
-
-  await workbook.xlsx.writeFile(excelFile);
-}
-
-module.exports = { addWorkflowToSchedule };
+module.exports = router;
